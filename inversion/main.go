@@ -1,3 +1,7 @@
+/* Пусть перестановка чисел от 1 до n. Будем говорить, что пара индексов (i,j) образует инверсию, если i<j и pi>pj
+Задана некоторая перестановка, требуется определить среднее количество инверсий в перестановке, полученной из данной после одной перестановки пары элементов. 
+При этом индексы переставляемых элементов выбираются равновероятно среди всех пар различных чисел от 1 до n. */
+
 package main
 
 import (
@@ -8,56 +12,40 @@ import (
 	"fmt"
 )
 
-func mergeSortAndCount(arr []int) ([]int, int) {
-	if len(arr) < 2 {
-		return arr, 0
+func updateFenwickTree(tree []int, index int, value int, n int) {
+	for index <= n {
+		tree[index] += value
+		index += index & (-index)
 	}
-
-	// Разделяем массив на две части
-	mid := len(arr) / 2
-	left, leftInv := mergeSortAndCount(arr[:mid])
-	right, rightInv := mergeSortAndCount(arr[mid:])
-
-	// Сливаем две половины и считаем инверсии
-	merged, splitInv := mergeAndCount(left, right)
-	
-	// Общее количество инверсий = инверсии в левой части + в правой части + при слиянии
-	totalInv := leftInv + rightInv + splitInv
-
-	return merged, totalInv
 }
-
-// Функция для слияния двух массивов и подсчёта инверсий
-func mergeAndCount(left, right []int) ([]int, int) {
-	merged := make([]int, 0, len(left)+len(right))
-	i, j, invCount := 0, 0, 0
-
-	// Сливаем два отсортированных подмассива
-	for i < len(left) && j < len(right) {
-		if left[i] <= right[j] {
-			merged = append(merged, left[i])
-			i++
-		} else {
-			merged = append(merged, right[j])
-			j++
-			// Все оставшиеся элементы в left больше, чем right[j], значит есть инверсии
-			invCount += len(left) - i
+func queryFenwickTree(tree []int, index int) int {
+	sum := 0
+	for index > 0 {
+		sum += tree[index]
+		index -= index & (-index)
+	}
+	return sum
+}
+func countInversions(arr []int) int {
+	n := len(arr)
+	if n == 0 {
+		return 0
+	}
+	maxElement := 0
+	for _, v := range arr {
+		if v > maxElement {
+			maxElement = v
 		}
 	}
-
-	// Добавляем оставшиеся элементы
-	merged = append(merged, left[i:]...)
-	merged = append(merged, right[j:]...)
-
-	return merged, invCount
-}
-
-/* func isInversion(array []int, i, j int) bool {
-	if i < j && array[i] > array[j] {
-		return true
+	fenwickTree := make([]int, maxElement+1)
+	inversionCount := 0
+	for i := n - 1; i >= 0; i-- {
+		inversionCount += queryFenwickTree(fenwickTree, arr[i]-1)
+		updateFenwickTree(fenwickTree, arr[i], 1, maxElement)
 	}
-	return false
-} */
+
+	return inversionCount
+}
 
 func gcd(a, b int) int {
 	for b != 0 {
@@ -81,12 +69,13 @@ func main() {
 	}
 	result := 0
 	count := 0
-	var arrayCopy []int
 	for i := 0; i < n - 1; i++ {
 		for j := i + 1; j < n; j++ {
 			count++
-			arrayCopy[i], arrayCopy[j] = arrayCopy[j], arrayCopy[i]
-			_, result = mergeSortAndCount(arrayCopy)
+			array[i], array[j] = array[j], array[i]
+
+			result += countInversions(array)
+			array[i], array[j] = array[j], array[i]
 		}
 	}
 	fmt.Println(result)
